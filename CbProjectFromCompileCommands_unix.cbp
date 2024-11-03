@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="CbProjectFromCompileCommands" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="external_cb">
+				<Option output="CbProjectFromCompileCommands" prefix_auto="1" extension_auto="1" />
+				<Option object_output=".objs/default" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="`pkg-config --cflags codeblocks`" />
+					<Add option="`wx-config --cflags`" />
+					<Add option="-g" />
+					<Add option="-Wall" />
+					<Add directory="json/include" />
+				</Compiler>
+				<Linker>
+					<Add option="`pkg-config --libs codeblocks`" />
+					<Add option="`wx-config --libs`" />
+				</Linker>
+				<ExtraCommands>
+					<Add after="zip -j9 CbProjectFromCompileCommands.zip manifest.xml" />
+					<Add after="cp -f libCbProjectFromCompileCommands.so CbProjectFromCompileCommands.so" />
+					<Add after="zip -j9 CbProjectFromCompileCommands.cbplugin CbProjectFromCompileCommands.so CbProjectFromCompileCommands.zip" />
+					<Add after="rm -f CbProjectFromCompileCommands.so" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+		</Build>
+		<VirtualTargets>
+			<Add alias="All" targets="external_cb;" />
+		</VirtualTargets>
+		<Compiler>
+			<Add option="-std=c++11" />
+			<Add option="-fPIC" />
+		</Compiler>
+		<Linker>
+			<Add option="-Wl,--no-undefined" />
+		</Linker>
+		<Unit filename="CbProjectFromCompileCommands.cpp" />
+		<Unit filename="CbProjectFromCompileCommands.h" />
+		<Unit filename="manifest.xml" />
+		<Extensions>
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

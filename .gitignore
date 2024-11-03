@@ -1,0 +1,11 @@
+.cache/
+.objs/
+CbProjectFromCompileCommands.cbplugin
+CbProjectFromCompileCommands.depend
+CbProjectFromCompileCommands.layout
+CbProjectFromCompileCommands.so
+CbProjectFromCompileCommands.zip
+compile_commands.json
+libCbProjectFromCompileCommands.so
+CbProjectFromCompileCommands_unix.layout
+CbProjectFromCompileCommands_unix.depend

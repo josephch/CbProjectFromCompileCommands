@@ -7,6 +7,14 @@ After cloning the repository please fetch submodules as below
 git submodule update --init
 
 ## Build
+###Build using cmake
+```
+mkdir cmake-build
+cd cmake-build
+cmake ../
+make
+```
+###Build using Code::Blocks
 Build after opening project in Code::Blocks
 
 ##Usage

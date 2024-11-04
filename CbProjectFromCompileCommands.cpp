@@ -175,9 +175,7 @@ bool CbProjectFromCompileCommands::CreateProjectInternal(const wxString& fileNam
 bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& errorString)
 {
     LogManager* logManager = Manager::Get()->GetLogManager();
-
     logManager->Log(wxString::Format(_("%s Yay!"), pluginName));
-    wxString basePath;
 
     wxFileDialog openFileDialog(nullptr, _("Open compile_commands.json file"), wxEmptyString, wxEmptyString,
                                 "JSON files (*.json)|*.json|All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
@@ -195,38 +193,29 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
         errorString = wxString::Format(_("%s: User canceled !"), pluginName);
         return false;
     }
+
     std::ifstream f(openFileDialog.GetPath());
     json jArray = json::parse(f);
     f.close();
+
     wxFileName cbpNameFull = saveFileDialog.GetPath();
     wxString projectDirectory = cbpNameFull.GetPath();
 
-    bool generateCompileCommands;
-    if (projectDirectory != openFileDialog.GetDirectory())
-    {
-        generateCompileCommands = true;
-    }
-    else
-    {
-        generateCompileCommands = false;
-    }
+    bool generateCompileCommands = (projectDirectory != openFileDialog.GetDirectory());
 
-    std::string jCommand;
-    std::string jDirectory;
-    std::string jFile;
     wxArrayString array;
     for (size_t i = 0; i < jArray.size(); i++)
     {
         json& jentry = jArray.at(i);
-        jDirectory = jentry.at("directory").get<std::string>();
-        jFile = jentry.at("file").get<std::string>();
-        wxFileName fileName(jFile);
+        std::string jDirectory = jentry.at("directory").get<std::string>();
+        wxFileName fileName(jentry.at("file").get<std::string>());
+
 #ifdef DEBUG
         fprintf(stderr, "file idx %zu name %s\n", i, fileName.GetFullPath().ToUTF8().data());
 #endif
         if (fileName.IsRelative())
         {
-            fileName = jDirectory + wxFILE_SEP_PATH + jFile;
+            fileName.Assign(jDirectory + wxFILE_SEP_PATH + fileName.GetFullName());
 #ifdef DEBUG
             fprintf(stderr, "file idx %zu appended directory . name %s\n", i, fileName.GetFullPath().ToUTF8().data());
 #endif
@@ -236,15 +225,18 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
         fprintf(stderr, "file idx %zu after make relative . name %s\n", i, fileName.GetFullPath().ToUTF8().data());
 #endif
         array.push_back(fileName.GetFullPath());
+
         if (generateCompileCommands)
         {
-            jentry["file"] = fileName.GetFullPath();
-            jentry["directory"] = projectDirectory;
+            jentry["file"] = fileName.GetFullPath().ToStdString();
+            jentry["directory"] = projectDirectory.ToStdString();
+
             if (jentry.contains("command"))
             {
                 std::ostringstream updatedCommand;
                 std::istringstream iss(jentry.at("command").get<std::string>());
                 std::string entry;
+
                 while (getline(iss, entry, ' '))
                 {
 #ifdef DEBUG
@@ -264,7 +256,7 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
 #endif
                         if (includeDirectory.IsRelative())
                         {
-                            includeDirectory = jDirectory + wxFILE_SEP_PATH + includeDirectory.GetFullPath();
+                            includeDirectory.Assign(jDirectory + wxFILE_SEP_PATH + includeDirectory.GetFullName());
 #ifdef DEBUG
                             fprintf(stderr, "file idx %zu appended directory . includeDirectory %s\n", i,
                                     includeDirectory.GetFullPath().ToUTF8().data());
@@ -283,10 +275,10 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
                     }
                     updatedCommand << ' ';
                 }
+                jentry["command"] = updatedCommand.str();
 #ifdef DEBUG
                 fprintf(stderr, "file idx %zu updated command %s\n", i, updatedCommand.str().c_str());
 #endif
-                jentry["command"] = updatedCommand.str();
             }
         }
     }
@@ -296,58 +288,49 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
 
     bool projectSetupCompleted = false;
     // generate list of files to add
-    if (array.GetCount() == 0)
+    if (array.IsEmpty())
     {
         errorString = wxString::Format(_("%s : Could not find any files!"), pluginName);
     }
     else
     {
-        if (array.GetCount() == 0)
+        logManager->Log(wxString::Format(_("%s : Before filter %d files present!"), pluginName, (int)array.GetCount()));
+
+        wxString wild;
+        const FilesGroupsAndMasks* fgam = Manager::Get()->GetProjectManager()->GetFilesGroupsAndMasks();
+        for (unsigned fm_idx = 0; fm_idx < fgam->GetGroupsCount(); fm_idx++) wild += fgam->GetFileMasks(fm_idx);
+
+        MultiSelectDlg dlg(nullptr, array, wild, _("Select the files to add to the project:"));
+        PlaceWindow(&dlg);
+        if (dlg.ShowModal() != wxID_OK)
         {
-            errorString = wxString::Format(_("%s : Could not find any valid files!"), pluginName);
+            logManager->Log(wxString::Format(_("%s : Dialog ShowModal canceled!"), pluginName));
         }
         else
         {
-            logManager->Log(wxString::Format(_("%s : Before filter %d files present!"), pluginName, (int)array.GetCount()));
+            array = dlg.GetSelectedStrings();
 
-            wxString wild;
-            const FilesGroupsAndMasks* fgam = Manager::Get()->GetProjectManager()->GetFilesGroupsAndMasks();
-            for (unsigned fm_idx = 0; fm_idx < fgam->GetGroupsCount(); fm_idx++) wild += fgam->GetFileMasks(fm_idx);
-
-            MultiSelectDlg dlg(nullptr, array, wild, _("Select the files to add to the project:"));
-            PlaceWindow(&dlg);
-            if (dlg.ShowModal() != wxID_OK)
+            if (array.IsEmpty())
             {
-                logManager->Log(wxString::Format(_("%s : Dialog ShowModal canceled!"), pluginName));
+                errorString = wxString::Format(_("%s : No files selected!"), pluginName);
             }
             else
             {
-                array = dlg.GetSelectedStrings();
-
-                if (array.GetCount() == 0)
+                if (generateCompileCommands)
                 {
-                    errorString = wxString::Format(_("%s : No files selected!"), pluginName);
-                }
-                else
-                {
-                    if (generateCompileCommands)
+                    wxString compileCommandsFullPath = projectDirectory + wxFILE_SEP_PATH + "compile_commands.json";
+                    std::ofstream jsonFile(compileCommandsFullPath.ToStdString());
+                    if (!jsonFile.is_open())
                     {
-                        std::fstream jsonFile;
-                        wxString compileCommandsFullPath = projectDirectory + wxFILE_SEP_PATH + "compile_commands.json";
-                        jsonFile.open(compileCommandsFullPath, std::ofstream::out | std::ofstream::trunc);
-                        if (!jsonFile.is_open())
-                        {
-                            wxString msg(
-                                wxString::Format(_("'compile_commands.json' file %s\nfailed to open for output.\n"), compileCommandsFullPath));
-                            cbMessageBox(msg);
-                        }
-                        else
-                        {
-                            jsonFile << std::setw(4) << jArray;
-                        }
+                        wxString msg(wxString::Format(_("'compile_commands.json' file %s\nfailed to open for output.\n"), compileCommandsFullPath));
+                        cbMessageBox(msg);
                     }
-                    projectSetupCompleted = CreateProjectInternal(cbpNameFull.GetFullPath(), array, errorString);
+                    else
+                    {
+                        jsonFile << std::setw(4) << jArray;
+                    }
                 }
+                projectSetupCompleted = CreateProjectInternal(cbpNameFull.GetFullPath(), array, errorString);
             }
         }
     }

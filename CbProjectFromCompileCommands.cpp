@@ -211,11 +211,11 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
         wxFileName fileName(jentry.at("file").get<std::string>());
 
 #ifdef DEBUG
-        fprintf(stderr, "file idx %zu name %s\n", i, fileName.GetFullPath().ToUTF8().data());
+        fprintf(stderr, "file idx %zu name %s jDirectory %s\n", i, fileName.GetFullPath().ToUTF8().data(), jDirectory.c_str());
 #endif
         if (fileName.IsRelative())
         {
-            fileName.Assign(jDirectory + wxFILE_SEP_PATH + fileName.GetFullName());
+            fileName.Assign(jDirectory + wxFILE_SEP_PATH + fileName.GetFullPath());
 #ifdef DEBUG
             fprintf(stderr, "file idx %zu appended directory . name %s\n", i, fileName.GetFullPath().ToUTF8().data());
 #endif

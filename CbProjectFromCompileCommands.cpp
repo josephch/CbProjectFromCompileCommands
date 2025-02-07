@@ -256,7 +256,7 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
 #endif
                         if (includeDirectory.IsRelative())
                         {
-                            includeDirectory.Assign(jDirectory + wxFILE_SEP_PATH + includeDirectory.GetFullName());
+                            includeDirectory.Assign(jDirectory + wxFILE_SEP_PATH + includeDirectory.GetFullPath());
 #ifdef DEBUG
                             fprintf(stderr, "file idx %zu appended directory . includeDirectory %s\n", i,
                                     includeDirectory.GetFullPath().ToUTF8().data());

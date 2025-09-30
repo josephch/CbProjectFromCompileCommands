@@ -171,6 +171,58 @@ bool CbProjectFromCompileCommands::CreateProjectInternal(const wxString& fileNam
     return ret;
 }
 
+static inline std::string get_updated_compile_command(const json& jentry, const std::string& originalDirectory, const std::string& projectDirectory,
+                                                      size_t itemIdx)
+{
+    std::ostringstream updatedCommand;
+    std::istringstream iss(jentry.at("command").get<std::string>());
+    std::string entry;
+
+    while (getline(iss, entry, ' '))
+    {
+#ifdef DEBUG
+        fprintf(stderr, "file idx %zu entry %s\n", itemIdx, entry.c_str());
+#endif
+        if (entry.rfind("-I", 0) == 0)
+        {
+#ifdef DEBUG
+            fprintf(stderr, "file idx %zu matched. entry %s\n", itemIdx, entry.c_str());
+#endif
+            std::string includePath = entry.substr(2);
+            includePath.erase(includePath.begin(),
+                              std::find_if(includePath.begin(), includePath.end(), [](unsigned char ch) { return !std::isspace(ch); }));
+            char first = includePath.front();
+            char last = includePath.back();
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\''))
+            {
+                includePath = includePath.substr(1, includePath.size() - 2);
+            }
+            wxFileName includeDirectory(includePath);
+#ifdef DEBUG
+            fprintf(stderr, "file idx %zu includePath %s\n", itemIdx, includeDirectory.GetFullPath().ToUTF8().data());
+#endif
+            if (includeDirectory.IsRelative())
+            {
+                includeDirectory.Assign(originalDirectory + wxFILE_SEP_PATH + includeDirectory.GetFullPath());
+#ifdef DEBUG
+                fprintf(stderr, "file idx %zu appended directory . includeDirectory %s\n", itemIdx, includeDirectory.GetFullPath().ToUTF8().data());
+#endif
+            }
+            includeDirectory.MakeRelativeTo(projectDirectory);
+#ifdef DEBUG
+            fprintf(stderr, "file idx %zu after make relative . includeDirectory %s\n", itemIdx, includeDirectory.GetFullPath().ToUTF8().data());
+#endif
+            updatedCommand << "-I" << includeDirectory.GetFullPath().ToStdString();
+        }
+        else
+        {
+            updatedCommand << entry;
+        }
+        updatedCommand << ' ';
+    }
+    return updatedCommand.str();
+}
+
 bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& errorString)
 {
     LogManager* logManager = Manager::Get()->GetLogManager();
@@ -227,58 +279,18 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
 
         if (generateCompileCommands)
         {
-            jentry["file"] = fileName.GetFullPath().ToStdString();
-            jentry["directory"] = projectDirectory.ToStdString();
+            std::string projectDirectoryStd = projectDirectory.ToStdString();
 
             if (jentry.contains("command"))
             {
-                std::ostringstream updatedCommand;
-                std::istringstream iss(jentry.at("command").get<std::string>());
-                std::string entry;
-
-                while (getline(iss, entry, ' '))
-                {
+                std::string updatedCommand = get_updated_compile_command(jentry, jDirectory, projectDirectoryStd, i);
 #ifdef DEBUG
-                    fprintf(stderr, "file idx %zu entry %s\n", i, entry.c_str());
+                fprintf(stderr, "file idx %zu updated command %s\n", i, updatedCommand.c_str());
 #endif
-                    if (entry.rfind("-I", 0) == 0)
-                    {
-#ifdef DEBUG
-                        fprintf(stderr, "file idx %zu matched. entry %s\n", i, entry.c_str());
-#endif
-                        std::string includePath = entry.substr(2);
-                        includePath.erase(includePath.begin(),
-                                          std::find_if(includePath.begin(), includePath.end(), [](unsigned char ch) { return !std::isspace(ch); }));
-                        wxFileName includeDirectory(includePath);
-#ifdef DEBUG
-                        fprintf(stderr, "file idx %zu includePath %s\n", i, includeDirectory.GetFullPath().ToUTF8().data());
-#endif
-                        if (includeDirectory.IsRelative())
-                        {
-                            includeDirectory.Assign(jDirectory + wxFILE_SEP_PATH + includeDirectory.GetFullPath());
-#ifdef DEBUG
-                            fprintf(stderr, "file idx %zu appended directory . includeDirectory %s\n", i,
-                                    includeDirectory.GetFullPath().ToUTF8().data());
-#endif
-                        }
-                        includeDirectory.MakeRelativeTo(projectDirectory);
-#ifdef DEBUG
-                        fprintf(stderr, "file idx %zu after make relative . includeDirectory %s\n", i,
-                                includeDirectory.GetFullPath().ToUTF8().data());
-#endif
-                        updatedCommand << "-I" << includeDirectory.GetFullPath().ToStdString();
-                    }
-                    else
-                    {
-                        updatedCommand << entry;
-                    }
-                    updatedCommand << ' ';
-                }
-                jentry["command"] = updatedCommand.str();
-#ifdef DEBUG
-                fprintf(stderr, "file idx %zu updated command %s\n", i, updatedCommand.str().c_str());
-#endif
+                jentry["command"] = std::move(updatedCommand);
             }
+            jentry["file"] = fileName.GetFullPath().ToStdString();
+            jentry["directory"] = std::move(projectDirectoryStd);
         }
     }
 

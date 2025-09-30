@@ -120,7 +120,7 @@ void CbProjectFromCompileCommands::OnCbProjectFromCompileCommands(wxCommandEvent
 
 bool CbProjectFromCompileCommands::CreateProjectInternal(const wxString& fileName, const wxArrayString& filelist, wxString& errorString)
 {
-    bool ret;
+    bool ret = true;
     ProjectManager* projectManager = Manager::Get()->GetProjectManager();
     cbProject* prj = projectManager->NewProject(fileName);
     if (!prj)
@@ -167,7 +167,6 @@ bool CbProjectFromCompileCommands::CreateProjectInternal(const wxString& fileNam
             }
         }
         projectManager->GetUI().RebuildTree();
-        ret = true;
     }
     return ret;
 }

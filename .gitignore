@@ -9,3 +9,4 @@ compile_commands.json
 libCbProjectFromCompileCommands.so
 CbProjectFromCompileCommands_unix.layout
 CbProjectFromCompileCommands_unix.depend
+/cmake-build/

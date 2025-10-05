@@ -12,10 +12,11 @@
 				<Option type="3" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
 					<Add option="`pkg-config --cflags codeblocks`" />
 					<Add option="`wx-config --cflags`" />
-					<Add option="-g" />
-					<Add option="-Wall" />
+					<Add option="-fno-gnu-unique" />
 					<Add directory="json/include" />
 				</Compiler>
 				<Linker>

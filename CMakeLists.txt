@@ -15,14 +15,17 @@ include_directories("${CMAKE_SOURCE_DIR}/json/include"
 # Compiler flags:
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CODEBLOCKS REQUIRED codeblocks)
-include_directories("${CODEBLOCKS_INCLUDE_DIRS}")
+if(CODEBLOCKS_INCLUDE_DIRS)
+	include_directories("${CODEBLOCKS_INCLUDE_DIRS}")
+endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CODEBLOCKS_CFLAGS_OTHER}")
 find_package(wxWidgets REQUIRED)
 include(${wxWidgets_USE_FILE})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-gnu-unique")
 
 # -------------------------------------------------------------------------------------------------
 

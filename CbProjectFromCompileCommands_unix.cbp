@@ -39,9 +39,6 @@
 			<Add option="-std=c++11" />
 			<Add option="-fPIC" />
 		</Compiler>
-		<Linker>
-			<Add option="-Wl,--no-undefined" />
-		</Linker>
 		<Unit filename="CbProjectFromCompileCommands.cpp" />
 		<Unit filename="CbProjectFromCompileCommands.h" />
 		<Unit filename="manifest.xml" />

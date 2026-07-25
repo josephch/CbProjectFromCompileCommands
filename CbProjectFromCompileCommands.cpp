@@ -113,7 +113,7 @@ void CbProjectFromCompileCommands::OnCbProjectFromCompileCommands(wxCommandEvent
         if (!errorString.IsEmpty())
         {
             Manager::Get()->GetLogManager()->LogError(errorString);
-            cbMessageBox(_(errorString), _("Error"), wxICON_ERROR);
+            cbMessageBox(errorString, _("Error"), wxICON_ERROR);
         }
     }
 }
@@ -203,7 +203,7 @@ static inline std::string get_updated_compile_command(const json& jentry, const 
 #endif
             if (includeDirectory.IsRelative())
             {
-                includeDirectory.Assign(originalDirectory + wxFILE_SEP_PATH + includeDirectory.GetFullPath());
+                includeDirectory.Assign(wxString(originalDirectory) + wxFILE_SEP_PATH + includeDirectory.GetFullPath());
 #ifdef DEBUG
                 fprintf(stderr, "file idx %zu appended directory . includeDirectory %s\n", itemIdx, includeDirectory.GetFullPath().ToUTF8().data());
 #endif
@@ -266,7 +266,7 @@ bool CbProjectFromCompileCommands::CreateCbProjectFromCompileCommands(wxString& 
 #endif
         if (fileName.IsRelative())
         {
-            fileName.Assign(jDirectory + wxFILE_SEP_PATH + fileName.GetFullPath());
+            fileName.Assign(wxString(jDirectory) + wxFILE_SEP_PATH + fileName.GetFullPath());
 #ifdef DEBUG
             fprintf(stderr, "file idx %zu appended directory . name %s\n", i, fileName.GetFullPath().ToUTF8().data());
 #endif
